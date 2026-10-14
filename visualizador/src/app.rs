@@ -622,14 +622,63 @@ impl App {
                         med.pontos.iter().map(|p| [tf(p.n as f64), tf(p.mediana_ns as f64 / 1e6)]).collect();
                     let nome = format!("{} ({})", m.sort, m.lang.nome());
                     let cor = cor_sort(&m.sort, m.lang, &self.sorts);
-                    let estilo = if m.lang == Lang::C { egui_plot::LineStyle::Solid } else { egui_plot::LineStyle::dashed_dense() };
+                    let estilo = if m.lang == Lang::C { egui_plot::LineStyle::Solid } else { egui_plot::LineStyle::dotted_dense() };
                     pu.line(Line::new(nome.clone(), PlotPoints::from(pts.clone())).color(cor).width(2.0).style(estilo));
                     pu.points(Points::new(nome, PlotPoints::from(pts)).color(cor).radius(3.0));
                 }
             });
-        ui.label(RichText::new("linha cheia = C · tracejada = Rust").weak().small());
         ui.separator();
 
+        ui.horizontal_top(|ui| {
+            ui.vertical(|ui| self.ui_tabela_tempos(ui));
+            ui.separator();
+            ui.vertical(|ui| self.ui_legenda_linhas(ui));
+        });
+    }
+
+    /// Ao lado da tabela: o que cada linha do gráfico significa.
+    fn ui_legenda_linhas(&self, ui: &mut egui::Ui) {
+        ui.label(RichText::new("Linhas do gráfico").strong());
+        let neutra = ui.visuals().text_color();
+        ui.horizontal(|ui| {
+            amostra_linha(ui, neutra, Lang::C);
+            ui.label("C: linha cheia");
+        });
+        ui.horizontal(|ui| {
+            amostra_linha(ui, neutra, Lang::Rust);
+            ui.label("Rust: pontilhada");
+        });
+        let mut sorts: Vec<&String> = Vec::new();
+        for m in &self.medidas {
+            if m.res.is_ok() && !sorts.contains(&&m.sort) {
+                sorts.push(&m.sort);
+            }
+        }
+        if sorts.is_empty() {
+            return;
+        }
+        sorts.sort();
+        ui.add_space(6.0);
+        egui::Grid::new("legenda_linhas").spacing([12.0, 4.0]).show(ui, |ui| {
+            for h in ["sort", "C", "Rust"] {
+                ui.label(RichText::new(h).strong());
+            }
+            ui.end_row();
+            for s in sorts {
+                ui.label(s.as_str());
+                for l in LANGS {
+                    if self.medidas.iter().any(|m| &m.sort == s && m.lang == l && m.res.is_ok()) {
+                        amostra_linha(ui, cor_sort(s, l, &self.sorts), l);
+                    } else {
+                        ui.label("—");
+                    }
+                }
+                ui.end_row();
+            }
+        });
+    }
+
+    fn ui_tabela_tempos(&self, ui: &mut egui::Ui) {
         egui::ScrollArea::vertical().show(ui, |ui| {
             let mut sorts: Vec<&String> = self.medidas.iter().map(|m| &m.sort).collect();
             sorts.dedup();
@@ -702,6 +751,19 @@ impl App {
             });
         });
     }
+}
+
+/// Um pedaço de linha no estilo do gráfico: cheia para C, pontilhada para Rust.
+fn amostra_linha(ui: &mut egui::Ui, cor: Color32, lang: Lang) {
+    let (r, _) = ui.allocate_exact_size(Vec2::new(40.0, 14.0), Sense::hover());
+    let (a, b) = (r.left_center(), r.right_center());
+    let p = ui.painter();
+    if lang == Lang::C {
+        p.line_segment([a, b], Stroke::new(2.0, cor));
+    } else {
+        p.extend(egui::Shape::dotted_line(&[a, b], cor, 4.0, 1.3));
+    }
+    p.circle_filled(r.center(), 3.0, cor);
 }
 
 fn combo_padrao(ui: &mut egui::Ui, id: &str, padrao: &mut usize) {
