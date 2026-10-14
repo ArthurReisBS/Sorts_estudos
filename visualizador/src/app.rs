@@ -601,7 +601,7 @@ impl App {
             ui.colored_label(COR_ESCRITA, format!("não consegui preparar o rastreador: {e}"));
         }
         ui.label(
-            RichText::new("Compilado com otimização (C com -O2, Rust com opt-level=3). Cada ponto é a mediana das repetições, com a mesma entrada nas duas linguagens.")
+            RichText::new("Compilado com otimização e o mesmo LLVM nas duas linguagens (C com clang -O3, Rust com opt-level=3). Cada ponto é a mediana das repetições, com a mesma entrada nas duas linguagens.")
                 .weak()
                 .small(),
         );
@@ -755,7 +755,7 @@ fn ui_painel(ui: &mut egui::Ui, p: &Painel, janela: usize) {
         Estado::Erro(e) => {
             ui.colored_label(COR_ESCRITA, "não compilou / não rodou:");
             egui::ScrollArea::vertical().id_salt(("erro", p.lang.nome())).max_height(ui.available_height() - 10.0).show(ui, |ui| {
-                ui.label(RichText::new(e).monospace().small());
+                ui.label(RichText::new(e).monospace());
             });
             return;
         }

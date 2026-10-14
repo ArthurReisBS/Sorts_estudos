@@ -6,13 +6,13 @@ cargo run --release              # abre a janela
 cargo run --release -- --verificar   # roda cada sort uma vez no terminal, sem janela
 ```
 
-Precisa de `gcc` e `rustc` no PATH. Só funciona em Linux x86_64 (ver "Como funciona").
+Precisa de `clang` e `rustc` no PATH. Só funciona em Linux x86_64 (ver "Como funciona").
 
 ## As duas abas
 
 **Animação.** Escolha o sort, o N, o tipo de entrada e aperte **▶ Executar**. Os dois lados (C à esquerda, Rust à direita) recebem exatamente o mesmo vetor. Cada passo é um acesso ao vetor: amarelo é leitura e vermelho é escrita. Quando o sort termina, as barras ficam verdes se o vetor ficou ordenado. Embaixo aparece a tabela C × Rust com leituras, escritas e total de acessos.
 
-**Comparação de tempo.** Mede o tempo real com o código otimizado (C com `-O2`, Rust com `opt-level=3`) para vários N. Cada ponto é a mediana de várias repetições, depois de uma rodada de aquecimento. Dá para medir só o sort escolhido ou todos de uma vez.
+**Comparação de tempo.** Mede o tempo real com o código otimizado (C com `clang -O3`, Rust com `opt-level=3`) para vários N. O C é compilado com clang, e não com gcc, porque o clang usa o mesmo LLVM do `rustc`: assim a diferença medida vem do código das duas linguagens, e não de dois compiladores diferentes. Cada ponto é a mediana de várias repetições, depois de uma rodada de aquecimento. Dá para medir só o sort escolhido ou todos de uma vez.
 
 ## O que o visualizador espera dos arquivos
 

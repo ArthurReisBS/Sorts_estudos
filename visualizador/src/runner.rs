@@ -12,11 +12,16 @@ const VT_TRACE_C: &str = include_str!("../runtime/vt_trace.c");
 const RUNNER_C: &str = include_str!("../runtime/runner_c.c");
 const RUNNER_RS: &str = include_str!("../runtime/runner_rs.rs");
 
+/// clang usa o mesmo LLVM do rustc: assim a aba de tempo compara C com Rust,
+/// e não GCC com LLVM
+const CC: &str = "clang";
+const C_OPT_TEMPO: &str = "-O3";
+
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum Modo {
     /// sem otimização e com rastreamento: para a animação
     Rastro,
-    /// otimizado (-O2 / opt-level=3): para medir tempo
+    /// otimizado (-O3 / opt-level=3): para medir tempo
     Tempo,
 }
 
@@ -78,16 +83,18 @@ impl Compilador {
             std::fs::write(&p, conteudo).map_err(|e| e.to_string())?;
             Ok(true)
         };
-        let mudou_vt = escrever("vt_trace.c", VT_TRACE_C)?;
-        let mudou_runner = escrever("runner_c.c", RUNNER_C)?;
+        // se o compilador mudar, os objetos são refeitos
+        let mudou_cc = escrever("cc", CC)?;
+        let mudou_vt = escrever("vt_trace.c", VT_TRACE_C)? || mudou_cc;
+        let mudou_runner = escrever("runner_c.c", RUNNER_C)? || mudou_cc;
         escrever("runner_rs.rs", RUNNER_RS)?;
         if mudou_vt || !rt.join("libvt.a").exists() {
-            rodar(Command::new("gcc").args(["-O2", "-c", "vt_trace.c", "-o", "vt.o"]).current_dir(&rt))?;
+            rodar(Command::new(CC).args(["-O2", "-c", "vt_trace.c", "-o", "vt.o"]).current_dir(&rt))?;
             let _ = std::fs::remove_file(rt.join("libvt.a"));
             rodar(Command::new("ar").args(["rcs", "libvt.a", "vt.o"]).current_dir(&rt))?;
         }
         if mudou_runner || !rt.join("runner_c.o").exists() {
-            rodar(Command::new("gcc").args(["-O2", "-c", "runner_c.c", "-o", "runner_c.o"]).current_dir(&rt))?;
+            rodar(Command::new(CC).args(["-O2", "-c", "runner_c.c", "-o", "runner_c.o"]).current_dir(&rt))?;
         }
         Ok(Self { dir })
     }
@@ -97,7 +104,7 @@ impl Compilador {
         let fonte = std::fs::read_to_string(arquivo).map_err(|e| e.to_string())?;
         let chamada = a.chamada(lang, fim_inclusivo);
         let mut h = DefaultHasher::new();
-        (lang, &fonte, &chamada, &a.tipo_elem, modo, VT_TRACE_C, RUNNER_C, RUNNER_RS).hash(&mut h);
+        (lang, &fonte, &chamada, &a.tipo_elem, modo, VT_TRACE_C, RUNNER_C, RUNNER_RS, CC, C_OPT_TEMPO).hash(&mut h);
         let stem = arquivo.file_stem().unwrap_or_default().to_string_lossy();
         let bin = self.dir.join("bin").join(format!("{}-{}-{:?}-{:016x}", lang.nome(), stem, modo, h.finish()));
         if bin.exists() {
@@ -119,8 +126,8 @@ impl Compilador {
                     chamada
                 );
                 std::fs::write(&tmp, entry).map_err(|e| e.to_string())?;
-                let opt = if modo == Modo::Rastro { "-O0" } else { "-O2" };
-                let mut cmd = Command::new("gcc");
+                let opt = if modo == Modo::Rastro { "-O0" } else { C_OPT_TEMPO };
+                let mut cmd = Command::new(CC);
                 cmd.args(["-std=gnu17", opt, "-g", "-w"]);
                 for h in ["stdio.h", "stdlib.h", "string.h", "stdbool.h", "limits.h", "math.h"] {
                     cmd.args(["-include", h]);
