@@ -1,0 +1,15 @@
+[package]
+name = "visualizador"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+eframe = "0.36"
+egui_plot = "0.37"
+regex = "1"
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3
