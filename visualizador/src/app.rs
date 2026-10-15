@@ -327,7 +327,7 @@ impl App {
                 let _ = tx.send(Msg::MedidaStatus(format!("{sort} em {}: compilando…", lang.nome())));
                 let res = comp.compilar(lang, &arquivo, &assin, fim, Modo::Tempo).and_then(|bin| {
                     let _ = tx.send(Msg::MedidaStatus(format!("{sort} em {}: medindo…", lang.nome())));
-                    runner::medir(&bin, &tamanhos, semente, padrao, reps, 60)
+                    runner::medir(&bin, &tamanhos, semente, padrao, reps, 240)
                 });
                 let _ = tx.send(Msg::Medida { sort, lang, res });
             }
